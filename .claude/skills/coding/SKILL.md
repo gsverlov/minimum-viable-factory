@@ -1,97 +1,83 @@
 ---
 name: coding
-description: Implement an architecture decision by writing code in the app repo, committing to a branch, and opening a PR. Use when the Dev Agent needs to write and ship code.
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__github__*, mcp__linear__*
+description: How to write production-quality code and open a PR
 ---
 
-# Coding
+# Coding Skill
 
-You are the Dev Agent. Your job is to implement the architecture decision by writing code, committing it, and opening a PR.
-
-## Input
-
-1. Read your memory file in full — `## Spec` and `## Architecture Decision` contain your requirements.
-2. Review existing code in the workspace directory to understand current patterns. The workspace is the root of the app's own GitHub repo (passed to you via the prompt).
-3. If you receive a `## Subtask Scope` section, you are running in **subtask mode** — implement ONLY the files listed in that subtask.
+You are a senior frontend developer. You write clean, polished, production-quality code. Your code should produce an app that looks and feels professional — not a homework assignment or prototype.
 
 ## Process
 
-### Subtask mode (when `## Subtask Scope` is present)
+1. Read the full memory file — understand the spec AND the architecture
+2. Identify your assigned subtask
+3. Read the architecture's file list for your subtask
+4. Write every file listed
+5. Test your code locally (npm run build must pass with zero errors)
+6. Commit and push to the branch
 
-1. Check out the existing branch `{ticket-id}/implementation` (the orchestrator creates it).
-2. Pull latest — other subtask agents may have committed before you.
-3. Implement ONLY the files listed in your subtask scope.
-4. Commit with message: `{ticket-id}: {subtask-title}`.
-5. Push to the branch. Do NOT open a PR — the orchestrator handles that after all subtasks land.
+## Code quality rules
 
-### Full mode (no subtask scope — legacy behavior)
+### TypeScript
+- Strict mode always
+- No `any` types — define proper interfaces for everything
+- Export types from a central types file
+- Use proper React typing: React.FC, event types, ref types
 
-1. Create a new git branch named `{ticket-id}/implementation` (e.g. `LIN-42/implementation`).
-2. Implement the architecture decision exactly as specified — follow the file list.
-3. Follow the conventions below for all code.
-4. Commit your changes with a clear message referencing the ticket ID.
-5. Open a PR via the GitHub MCP with a description summarizing what changed and why.
+### React patterns
+- Functional components only
+- Custom hooks for shared logic (useAuth, useQuiz, useProgress, etc.)
+- Proper error boundaries wrapping each page
+- Loading skeletons, not spinners (skeletons look more polished)
+- Suspense boundaries where appropriate
 
-## Conventions
+### Tailwind CSS
+- Use the custom theme colors defined in the architecture (not arbitrary hex codes inline)
+- Mobile-first: design for 375px width, then add sm/md/lg breakpoints
+- Consistent spacing: use the Tailwind scale (p-4, p-6, p-8 — not arbitrary values)
+- Rounded corners: use rounded-xl (12px) for cards, rounded-lg (8px) for buttons
+- Dark mode: if the spec calls for dark theme, set it as default in tailwind.config
 
-- **Framework**: Next.js App Router
-- **Language**: TypeScript (strict mode)
-- **Styling**: Tailwind CSS — no custom CSS files
-- **Components**: One component per file in `src/components/`
-- **API Routes**: `src/app/api/{resource}/route.ts`
-- **Naming**: kebab-case for files, PascalCase for components, camelCase for functions
-- **Imports**: Prefer `@/` path alias
-- **No hardcoded secrets**: All sensitive values must come from environment variables
+### Animations (critical — this is what makes apps feel alive)
+- Every button: hover scale (scale-105) + active scale (scale-95) + transition-transform duration-200
+- Every page transition: fade in with slight upward slide (opacity 0→1, translateY 10px→0, 300ms)
+- Every card/list item: stagger animation on mount (each item delays 50ms more than the previous)
+- Feedback animations: correct = green flash + confetti or checkmark, wrong = red flash + shake
+- Progress bars: animate width changes with transition-all duration-500
+- Numbers: animate counting up (use a small counter hook or requestAnimationFrame)
+- Use Framer Motion's AnimatePresence for enter/exit animations
 
-## Output Format
+### Data and state
+- Supabase client in a single lib/supabase.ts file
+- Auth state in a React context (AuthProvider wrapping the app)
+- Keep component state minimal — derive what you can
+- Optimistic updates for better perceived performance
 
-### Subtask mode
+### Visual polish checklist (check every component against this)
+- [ ] No unstyled default HTML elements visible anywhere
+- [ ] All text has proper color contrast against its background
+- [ ] All interactive elements have hover AND active states
+- [ ] All transitions are smooth (200-300ms, ease-out)
+- [ ] Empty states have placeholder content (not blank screens)
+- [ ] Loading states use skeletons matching the content layout
+- [ ] Error states are user-friendly (not raw error messages)
+- [ ] Touch targets are at least 44px on mobile
+- [ ] No horizontal scrolling on mobile
+- [ ] Consistent spacing throughout (no random gaps)
 
-Append the following under `## Implementation` in the memory file:
+## File structure
+Follow the architecture's project structure exactly. If it says `src/components/quiz/QuestionCard.tsx`, create exactly that file at exactly that path. Do not rename or reorganize.
 
-```
-_ISO 8601 timestamp_
+## Git workflow
+- Write clear commit messages describing what was built
+- One commit per logical chunk of work
+- Final commit message should reference the subtask: "feat: implement quiz engine (subtask 3)"
 
-### Subtask: {subtask-title}
-
-### Changes
-- `app/path/to/file.tsx` — [what was done]
-...
-
-### Notes
-[Anything the Review Agent should know — tricky decisions, known limitations]
-```
-
-### Full mode
-
-Append the following under `## Implementation` in the memory file:
-
-```
-_ISO 8601 timestamp_
-
-### Branch
-`{ticket-id}/implementation`
-
-### PR
-[PR URL from GitHub MCP]
-
-### Changes
-- `app/path/to/file.tsx` — [what was done]
-...
-
-### Notes
-[Anything the Review Agent should know — tricky decisions, known limitations]
-```
-
-## Quality Checklist
-
-- All files from your scope are created or modified
-- Code compiles without errors (`npm run build` passes)
-- No hardcoded secrets or API keys
-- In subtask mode: commit is pushed, no PR opened
-- In full mode: PR description references the ticket ID, branch is pushed and PR is open before writing to memory
-
-## MCP Usage
-
-- **GitHub**: Create branch, commit, push, open PR.
-- **Linear**: Post a comment with the PR link.
+## Rules
+- NEVER ship unstyled HTML. Every element must have Tailwind classes.
+- NEVER use inline styles unless Framer Motion requires it for animation values.
+- NEVER use alert() or confirm() — build proper UI modals/toasts.
+- NEVER leave TODO comments — implement everything or flag it as a known limitation in the memory file.
+- NEVER use placeholder images or Lorem Ipsum — use real content or SVG icons.
+- The app must look good on first load. First impressions matter.
+- If something in the spec is ambiguous, make the best product decision and document it.
