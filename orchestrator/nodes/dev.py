@@ -24,18 +24,69 @@ from orchestrator.agent_runner import run_agent
 # ---------------------------------------------------------------------------
 
 
+se subtasks fix · PY
+Copy
+
 def parse_subtasks(memory_text: str) -> list[dict]:
-    """Parse the ### Subtasks section from the architecture decision in memory."""
-    match = re.search(r'### Subtasks\s*\n(.*?)(?=\n###|\n## |\Z)', memory_text, re.DOTALL)
+    """Parse subtasks from the architecture decision in memory.
+    
+    Handles multiple formats:
+    1. Original: ### Subtasks followed by numbered bold list
+    2. Table: markdown table with # | Subtask | Scope columns
+    3. Alternate headings: ### N Parallel Subtasks, ### Subtasks for parallel development, etc.
+    """
+    
+    # Try to find the subtasks section with flexible heading matching
+    # Match any ### heading containing the word "subtask" (case-insensitive)
+    match = re.search(r'###\s+.*?[Ss]ubtask.*?\n(.*?)(?=\n##[^#]|\n# |\Z)', memory_text, re.DOTALL)
     if not match:
         return []
     section = match.group(1).strip()
     subtasks = []
+ 
+    # Format 1: Numbered list with bold titles
+    # e.g., "1. **Project Setup**: description..."
     for m in re.finditer(r'\d+\.\s+\*\*(.+?)\*\*:\s*(.+?)(?=\n\d+\.|\Z)', section, re.DOTALL):
         subtasks.append({
             "title": m.group(1).strip(),
             "description": m.group(2).strip(),
         })
+    if subtasks:
+        return subtasks
+ 
+    # Format 2: Markdown table with | # | Subtask | Scope | or similar
+    # e.g., "| 1 | **Project Setup** | Vite scaffold, Tailwind tokens... |"
+    for m in re.finditer(r'\|\s*\d+\s*\|\s*\*?\*?(.+?)\*?\*?\s*\|\s*(.+?)\s*\|', section):
+        title = m.group(1).strip().strip('*').strip()
+        description = m.group(2).strip()
+        if title and title != 'Subtask' and title != '---' and not title.startswith('--'):
+            subtasks.append({
+                "title": title,
+                "description": description,
+            })
+    if subtasks:
+        return subtasks
+ 
+    # Format 3: ## Subtask N: Name headers with description below
+    # e.g., "## Subtask 1: Project Setup\n**Files to create**: ...\n**What it does**: ..."
+    for m in re.finditer(r'##\s+Subtask\s+\d+[:\s]+(.+?)\n(.*?)(?=\n##\s+Subtask|\n## [^S]|\Z)', section, re.DOTALL):
+        title = m.group(1).strip()
+        description = m.group(2).strip()
+        subtasks.append({
+            "title": title,
+            "description": description,
+        })
+    if subtasks:
+        return subtasks
+ 
+    # Format 4: Numbered list without bold but with colon
+    # e.g., "1. Project Setup: description..."
+    for m in re.finditer(r'\d+\.\s+([^:*\n]+):\s*(.+?)(?=\n\d+\.|\Z)', section, re.DOTALL):
+        subtasks.append({
+            "title": m.group(1).strip(),
+            "description": m.group(2).strip(),
+        })
+    
     return subtasks
 
 
