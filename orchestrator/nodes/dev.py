@@ -24,9 +24,6 @@ from orchestrator.agent_runner import run_agent
 # ---------------------------------------------------------------------------
 
 
-se subtasks fix · PY
-Copy
-
 def parse_subtasks(memory_text: str) -> list[dict]:
     """Parse subtasks from the architecture decision in memory.
     
