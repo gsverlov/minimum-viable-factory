@@ -26,42 +26,43 @@ from orchestrator.agent_runner import run_agent
 
 def parse_subtasks(memory_text: str) -> list[dict]:
     """Parse subtasks from the architecture decision in memory.
+    Aggressively matches any reasonable subtask format."""
     
-    Handles multiple formats:
-    1. Original: ### Subtasks followed by numbered bold list
-    2. Table: markdown table with # | Subtask | Scope columns
-    3. Alternate headings: ### N Parallel Subtasks, ### Subtasks for parallel development, etc.
-    """
-    
-    # Try to find the FIRST subtasks section with flexible heading matching
-    match = re.search(r'###\s+.*?[Ss]ubtask.*?\n(.*?)(?=\n##[^#]|\n# |\Z)', memory_text, re.DOTALL)
+    # Find ANY section with "subtask" in the heading (case-insensitive)
+    match = re.search(r'#+\s+.*?[Ss]ubtask.*?\n(.*?)(?=\n##[^#]|\n# |\Z)', memory_text, re.DOTALL)
     if not match:
         return []
     section = match.group(1).strip()
     subtasks = []
 
-    # Format 1: Numbered list with bold titles
-    for m in re.finditer(r'\d+\.\s+\*\*(.+?)\*\*:\s*(.+?)(?=\n\d+\.|\Z)', section, re.DOTALL):
+    # Strategy 1: Numbered list with bold titles and ANY separator
+    for m in re.finditer(r'\d+\.\s+\*\*(.+?)\*\*\s*[^a-zA-Z\n]*(.+?)(?=\n\d+\.|\Z)', section, re.DOTALL):
         subtasks.append({
             "title": m.group(1).strip(),
             "description": m.group(2).strip(),
         })
-    if subtasks:
-        seen = set()
-        return [st for st in subtasks if st["title"] not in seen and not seen.add(st["title"])]
+    
+    # Strategy 2: Markdown table rows
+    if not subtasks:
+        for m in re.finditer(r'\|\s*\d+\s*\|\s*\*?\*?(.+?)\*?\*?\s*\|\s*(.+?)\s*\|', section):
+            title = m.group(1).strip().strip('*').strip()
+            description = m.group(2).strip()
+            if title and title != 'Subtask' and not title.startswith('--'):
+                subtasks.append({"title": title, "description": description})
 
-    # Format 2: Markdown table
-    for m in re.finditer(r'\|\s*\d+\s*\|\s*\*?\*?(.+?)\*?\*?\s*\|\s*(.+?)\s*\|', section):
-        title = m.group(1).strip().strip('*').strip()
-        description = m.group(2).strip()
-        if title and title != 'Subtask' and title != '---' and not title.startswith('--'):
-            subtasks.append({
-                "title": title,
-                "description": description,
-            })
-    if subtasks:
-        seen = set()
-        return [st for st in subtasks if st["title"] not in seen and not seen.add(st["title"])]
+    # Strategy 3: Any numbered line with recognizable content
+    if not subtasks:
+        for m in re.finditer(r'\d+\.\s+(.+?)(?=\n\d+\.|\Z)', section, re.DOTALL):
+            line = m.group(1).strip()
+            if len(line) > 10:
+                parts = re.split(r'\s*[\-\—\–:]\s*', line, maxsplit=1)
+                title = parts[0].strip().strip('*')
+                description = parts[1].strip() if len(parts) > 1 else line
+                subtasks.append({"title": title, "description": description})
+
+    # Deduplicate by title
+    seen = set()
+    return [st for st in subtasks if st["title"] not in seen and not seen.add(st["title"])]
 
     # Format 3: ## Subtask N: Name headers
     for m in re.finditer(r'##\s+Subtask\s+\d+[:\s]+(.+?)\n(.*?)(?=\n##\s+Subtask|\n## [^S]|\Z)', section, re.DOTALL):
