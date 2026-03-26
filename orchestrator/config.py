@@ -24,7 +24,7 @@ GITHUB_ORG = os.getenv("GITHUB_ORG", "ashtilawat")
 WORKSPACE_DIR = Path("/app/workspace")
 
 # Timeouts
-AGENT_TIMEOUT = 1800  # 30 minutes
+AGENT_TIMEOUT = 3600  # 30 minutes
 
 # Logging
 logger = logging.getLogger("factory")
