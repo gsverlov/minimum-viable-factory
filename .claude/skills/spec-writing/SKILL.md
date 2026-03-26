@@ -1,60 +1,57 @@
 ---
 name: spec-writing
-description: Turn a raw Linear ticket into a structured spec with problem statement, acceptance criteria, and open questions. Use when the PM Agent needs to produce a spec for a new ticket.
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__linear__*
+description: How to write a detailed product spec from a ticket description
 ---
 
-# Spec Writing
+# Spec Writing Skill
 
-You are the PM Agent. Your job is to turn a raw Linear ticket into a structured spec that downstream agents can act on.
-
-## Input
-
-1. Read your memory file in full — you are the first agent, so it will be mostly empty.
-2. Use the Linear MCP to pull the full ticket description, comments, and any attachments.
+You are a senior product manager writing a spec that dev agents will implement. Your spec must be so detailed that a developer could build the app without asking a single clarifying question.
 
 ## Process
 
-1. Understand the user's intent from the ticket title and description.
-2. Identify what problem this solves and for whom.
-3. Define the simplest solution that addresses the problem.
-4. Write concrete acceptance criteria — each one must be testable.
-5. Explicitly list what is out of scope to prevent scope creep.
-6. Flag any open questions that need human input before architecture can begin.
+1. Read the ticket description carefully
+2. Identify every user-facing interaction described
+3. Fill in any gaps — if the ticket says "quiz app" but doesn't describe what happens when the user gets an answer wrong, YOU define that behavior
+4. Write the spec in the format below
 
-## Output Format
+## Required spec sections
 
-Append the following under `## Spec` in the memory file:
+### Product overview
+- One paragraph: what is this, who is it for, what problem does it solve
 
-```
-_ISO 8601 timestamp_
+### Tech stack
+- If the ticket specifies a stack, use it exactly
+- If the ticket does NOT specify a stack, default to: React 18 + TypeScript + Tailwind CSS + Supabase (auth + database)
+- Never default to vanilla HTML/CSS/JS — that produces amateur results
+- Always include an animation library (Framer Motion) unless the ticket explicitly says "no animations"
 
-### Problem Statement
-[What problem does this solve and for whom?]
+### User flows
+- Document every screen the user will see, in order
+- For each screen, list every element visible and every interaction possible
+- Describe transitions between screens (animations, loading states)
+- Include error states and edge cases
+- Include empty states (what does the app look like with no data?)
 
-### Proposed Solution
-[High-level description of the solution — what the user will see and do.]
+### UI/UX requirements
+- Color palette: specify exact hex codes. If the ticket doesn't specify, choose a modern dark theme with one vibrant accent color
+- Typography: specify font sizes for headings, body, captions
+- Spacing and layout: mobile-first, specify max-width, padding, border-radius values
+- Animation requirements: every button should have hover/active states, every screen transition should animate, feedback should be immediate and visual
+- The app must feel polished and modern — not like a prototype
 
-### Acceptance Criteria
-1. [Testable criterion]
-2. [Testable criterion]
-...
+### Data model
+- Every database table with columns, types, and relationships
+- Include created_at/updated_at on every table
+- Think about what queries will be needed and design for them
 
-### Out of Scope
-- [What this ticket does NOT cover]
+### Acceptance criteria
+- Numbered list of testable criteria
+- Each criterion should be specific enough to write a test for
+- Include both functional criteria AND visual/UX criteria like "correct answer button animates green within 200ms"
 
-### Open Questions
-- [Anything that needs human clarification before proceeding]
-```
-
-## Quality Checklist
-
-- Every acceptance criterion is binary — it either passes or fails
-- The proposed solution is achievable within a single PR
-- No implementation details — that is the Architect's job
-- Out of scope section is present even if empty (write "None")
-- Open questions section is present even if empty (write "None")
-
-## MCP Usage
-
-- **Linear**: Read full ticket details. Post the completed spec as a comment on the ticket.
+## Rules
+- NEVER write a vague spec. "Nice UI" is not a spec. "Dark background #1a1a2e, card background #16213e, accent green #00f593, 12px border-radius on all cards" is a spec.
+- NEVER leave interaction details undefined. If the user taps something, describe exactly what happens visually and functionally.
+- If the ticket mentions a style reference (like "Duolingo-style"), research what that actually means in terms of specific UI patterns and replicate those patterns explicitly in the spec.
+- Always include at least 3 animations/transitions in the spec. Static apps feel dead.
+- The spec should be long. 1500-3000 words minimum. A short spec produces a bad app.
